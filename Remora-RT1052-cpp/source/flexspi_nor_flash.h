@@ -1,8 +1,10 @@
 #ifndef FLEXSPI_NOR_FLASH_H_
 #define FLEXSPI_NOR_FLASH_H_
 
+#include "flash_layout.h"
+
 #define EXAMPLE_FLEXSPI                 FLEXSPI
-#define FLASH_SIZE                      0x1000
+#define FLASH_SIZE                      (BOARD_FLASH_SIZE / 1024U) /* FlexSPI expects KiB */
 #define EXAMPLE_FLEXSPI_AMBA_BASE       FlexSPI_AMBA_BASE
 #define FLASH_PAGE_SIZE                 256
 #define EXAMPLE_SECTOR                  20

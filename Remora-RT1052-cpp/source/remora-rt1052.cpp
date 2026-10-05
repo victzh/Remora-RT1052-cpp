@@ -153,7 +153,9 @@ typedef struct
   uint32_t jsonLength;  	// length in of JSON config in bytes
   uint8_t padding[500];
 } metadata_t;
-#define METADATA_LEN    512 // 512 bytes of metadata in front of actual JSON file
+static_assert(sizeof(metadata_t) == JSON_METADATA_SIZE, "JSON metadata size mismatch");
+static_assert(JSON_FLASH_SECTOR_SIZE == SECTOR_SIZE, "JSON and FlexSPI sector sizes differ");
+static_assert(JSON_MAX_LENGTH <= JSON_STORAGE_MAX_LENGTH, "JSON does not fit in storage region");
 
 volatile bool newJson;
 uint32_t crc32;
@@ -168,14 +170,15 @@ JsonObject module;
 int8_t checkJson()
 {
 	metadata_t* meta = (metadata_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS);
-	uint32_t* json = (uint32_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS + METADATA_LEN);
+	uint32_t* json = (uint32_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS + JSON_METADATA_SIZE);
 
     uint32_t table[256];
     crc32::generate_table(table);
     int mod, padding;
 
 	// Check length is reasonable
-	if (meta->length > 2 * SECTOR_SIZE)
+	if ((meta->jsonLength > JSON_MAX_LENGTH) ||
+	    (meta->length > ((JSON_MAX_LENGTH + sizeof(uint32_t) - 1U) / sizeof(uint32_t))))
 	{
 		newJson = false;
 		printf("JSON Config length incorrect\n");
@@ -196,7 +199,7 @@ int8_t checkJson()
 
 	// Compute CRC
     crc32 = 0;
-    char* ptr = (char *)(XIP_BASE + JSON_UPLOAD_ADDRESS + METADATA_LEN);
+    char* ptr = (char *)(XIP_BASE + JSON_UPLOAD_ADDRESS + JSON_METADATA_SIZE);
     for (int i = 0; i < meta->jsonLength + padding; i++)
     {
         crc32 = crc32::update(table, crc32, ptr, 1);
@@ -230,6 +233,11 @@ void moveJson()
 	uint32_t Flash_Write_Address;
 
 	uint16_t jsonLength = meta->jsonLength;
+	if (meta->jsonLength > JSON_MAX_LENGTH)
+	{
+		PRINTF("JSON Config length incorrect\r\n");
+		return;
+	}
 
     // how many pages are needed to be written. The first 4 bytes of the storage location will contain the length of the JSON file
     pages = (meta->jsonLength + 4) / FLASH_PAGE_SIZE;
@@ -257,7 +265,7 @@ void moveJson()
 
     for (i = 0; i < jsonLength; i++)
     {
-        data[i + 4] = *((uint8_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS + METADATA_LEN + i));
+        data[i + 4] = *((uint8_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS + JSON_METADATA_SIZE + i));
     }
 
 	// erase the old JSON config file
@@ -311,9 +319,9 @@ void jsonFromFlash(std::string json)
     // read word 0 to determine length to read
     jsonLength = *(uint32_t*)(XIP_BASE + JSON_STORAGE_ADDRESS);
 
-    if (jsonLength == 0xFFFFFFFF)
+    if ((jsonLength == 0xFFFFFFFF) || (jsonLength > JSON_STORAGE_MAX_LENGTH))
     {
-    	printf("Flash storage location is empty - no config file\n");
+		printf("Flash storage location is empty or invalid - no config file\n");
     	printf("Using basic default configuration - 3 step generators only\n");
 
     	jsonLength = sizeof(defaultConfig);

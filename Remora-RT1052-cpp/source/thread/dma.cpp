@@ -54,8 +54,8 @@ void DMA::configDMA(void)
 
 	EDMA_InstallTCD(this->DMAn, 0, tcdMemoryPoolPtr);
 
-	this->tcd_0 = &tcdMemoryPoolPtr[0];
-	this->tcd_1 = &tcdMemoryPoolPtr[1];
+	this->tcd_0 = reinterpret_cast<uint32_t>(&tcdMemoryPoolPtr[0]);
+	this->tcd_1 = reinterpret_cast<uint32_t>(&tcdMemoryPoolPtr[1]);
 }
 
 
@@ -90,4 +90,3 @@ void DMA::updateBuffers(void)
 		memset(stepgenDMAbuffer_1, 0, sizeof(stepgenDMAbuffer_1));
 	}
 }
-

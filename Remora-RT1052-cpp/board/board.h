@@ -12,6 +12,7 @@
 #include "fsl_common.h"
 #include "fsl_gpio.h"
 #include "fsl_clock.h"
+#include "flash_layout.h"
 
 /*******************************************************************************
  * Definitions
@@ -63,9 +64,6 @@
 #define BOARD_USER_BUTTON_IRQ         GPIO5_Combined_0_15_IRQn
 #define BOARD_USER_BUTTON_IRQ_HANDLER GPIO5_Combined_0_15_IRQHandler
 #define BOARD_USER_BUTTON_NAME        "SW8"
-
-/*! @brief The hyper flash size */
-#define BOARD_FLASH_SIZE (0x400000U)
 
 /*! @brief The ENET PHY address. */
 #define BOARD_ENET0_PHY_ADDRESS (0x00U) /* Phy address of enet port 0. */

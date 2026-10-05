@@ -6,6 +6,7 @@
  */
 
 #include <mimxrt1050_flexspi_nor_config.h>
+#include "flash_layout.h"
 
 /* Component ID definition, used by tools. */
 #ifndef FSL_COMPONENT_ID
@@ -34,7 +35,7 @@ const flexspi_nor_config_t qspiflash_config = {
             .deviceType           = kFlexSpiDeviceType_SerialNOR,
             .sflashPadType        = kSerialFlash_4Pads,
             .serialClkFreq        = kFlexSpiSerialClk_133MHz,
-            .sflashA1Size         = 4u * 1024u * 1024u,
+            .sflashA1Size         = BOARD_FLASH_SIZE,
             .lookupTable =
                 {
                     // Read LUTs

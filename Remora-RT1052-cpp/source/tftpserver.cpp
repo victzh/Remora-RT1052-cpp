@@ -32,6 +32,10 @@ static struct udp_pcb *UDPpcb;
 static __IO uint32_t total_count=0;
 static edma_handle_t edma_handle;
 
+static_assert(JSON_UPLOAD_MAX_FILE_SIZE >= TFTP_DATA_LEN_MAX, "JSON upload region is too small");
+static_assert((JSON_UPLOAD_MAX_FILE_SIZE % TFTP_DATA_LEN_MAX) == 0U,
+              "JSON upload region must contain whole TFTP blocks");
+
 
 /* Private function prototypes -----------------------------------------------*/
 
@@ -174,6 +178,17 @@ static void IAP_wrq_recv_callback(void *_args, struct udp_pcb *upcb, struct pbuf
   if ((pkt_buf->len > TFTP_DATA_PKT_HDR_LEN) &&
       (IAP_tftp_extract_block((char*)pkt_buf->payload) == (args->block + 1)))
   {
+    const uint32_t blockOffset = (uint32_t)args->block * TFTP_DATA_LEN_MAX;
+
+    if (blockOffset > (JSON_UPLOAD_MAX_FILE_SIZE - TFTP_DATA_LEN_MAX))
+    {
+      PRINTF("JSON upload exceeds reserved flash region !\r\n");
+      newJson = false;
+      IAP_tftp_cleanup_wr(upcb, args);
+      pbuf_free(pkt_buf);
+      return;
+    }
+
     /* copy packet payload to data_buffer */
     pbuf_copy_partial(pkt_buf, data_buffer, pkt_buf->len - TFTP_DATA_PKT_HDR_LEN,
                       TFTP_DATA_PKT_HDR_LEN);

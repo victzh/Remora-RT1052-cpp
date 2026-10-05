@@ -105,13 +105,14 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 {
 	int txlen = 0;
 	struct pbuf *txBuf;
+	const uint8_t *payload = static_cast<const uint8_t *>(p->payload);
 	//Lets reduce time by getting the header information before doing memcpy
 
 	int32_t header =
-			*(uint8_t*)((p->payload + (sizeof(uint8_t) * 0))) |
-			(*(uint8_t*)((p->payload + (sizeof(uint8_t) * 1))) << 8) |
-			(*(uint8_t*)((p->payload + (sizeof(uint8_t) * 2))) << 16) |
-			(*(uint8_t*)((p->payload + (sizeof(uint8_t) * 3))) << 24);/*int32_t(
+				payload[0] |
+				(payload[1] << 8) |
+				(payload[2] << 16) |
+				(payload[3] << 24);/*int32_t(
 				*(uint8_t*)((p->payload + (sizeof(uint8_t) * 0))) << 24 |
 				*(uint8_t*)((p->payload + (sizeof(uint8_t) * 1))) << 16 |
 				*(uint8_t*)((p->payload + (sizeof(uint8_t) * 2))) << 8 |
@@ -144,7 +145,15 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 		//pragma pack should support memcpy, we should later look into the networking driver and see where p comes from,
 		// and see if we can provide a data location to memcpy it in to which should further reduce cpu-time.
 		// Of course not a lot but every little bit is enough.
-		memcpy(&rxData.rxBuffer, p->payload, p->len);
+		size_t copyLength = p->len;
+		if (copyLength > sizeof(rxData.rxBuffer))
+		{
+			copyLength = sizeof(rxData.rxBuffer);
+		}
+		for (size_t i = 0; i < copyLength; i++)
+		{
+			rxData.rxBuffer[i] = payload[i];
+		}
 
 		// re-enable thread interrupts
 		__enable_irq();
